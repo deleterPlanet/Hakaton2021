@@ -31,10 +31,11 @@ class Items():
 class Snake():
 	drc = "top" #направление змейки
 	body = [] 
-	length = 1 #максимальная длина змейки
+	length = 10 #максимальная длина змейки
 	color = "green3" #"green4"
 	speedX = 0
 	speedY = -1
+	newDrc = ""
 
 	def __init__(self, x=0, y=0, speed=1):
 		self.headPosX = x
@@ -46,9 +47,19 @@ class Snake():
 		self.headPosX += self.speedX
 		self.headPosY += self.speedY
 		self.body.insert(0, {"x": self.headPosX, "y": self.headPosY})
-		while len(self.body) > self.length:
+		if len(self.body) > self.length: #"анимация" укорочения
 			del self.body[-1]
+		if len(self.body) > self.length: #"анимация" укорочения
+			del self.body[-1]
+		if self.newDrc != "":
+			self.drc = self.newDrc
+			self.newDrc = ""
 
+	def checkBiteYourself(self):
+		for i in range(len(self.body)):
+			for j in range(i+1, len(self.body)):
+				if self.body[i]["x"] == self.body[j]["x"] and self.body[i]["y"] == self.body[j]["y"]:
+					death()
 
 def death():
 	inGame = False
@@ -62,25 +73,23 @@ def drawSnake(): #отрисовка змейки
 
 def onKeyPressed(event): #отслеживание нажатий клавиш
 	code = event.keycode
-	newDrc = ""
 	newSpeedX = 0
 	newSpeedY = 0
 	if code == 112:
 		help()
 	elif code == 38 and snake.drc != "bottom": #вверх
-		newDrc = "top"
+		snake.newDrc = "top"
 		newSpeedY = -1
 	elif code == 40 and snake.drc != "top": #вниз
-		newDrc = "bottom"
+		snake.newDrc = "bottom"
 		newSpeedY = 1
 	elif code == 39 and snake.drc != "left": #вправо
-		newDrc = "right"
+		snake.newDrc = "right"
 		newSpeedX = 1
 	elif code == 37 and snake.drc != "right": #влево
-		newDrc = "left"
+		snake.newDrc = "left"
 		newSpeedX = -1
-	if newDrc != "":
-		snake.drc = newDrc
+	if newSpeedX + newSpeedY != 0:
 		snake.speedX = newSpeedX
 		snake.speedY = newSpeedY
 
@@ -112,6 +121,7 @@ def loop():
 	snake.move()
 	drawSnake()
 	drawApples()
+	snake.checkBiteYourself()
 	checkBorderContact()
 	checkAppleContact()
 	items.checkAppleCount()
