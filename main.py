@@ -136,9 +136,6 @@ class EndGameWindow(Toplevel):
         self.resizable(width=False, height=False)
         self.protocol("WM_DELETE_WINDOW", self.toMenu)
 
-        # self.lblEnd = Label(self, text="Конец игры", font=("Arial Bold", 20))
-        # self.lblEnd.pack(side=TOP, padx=10, pady=10)
-
         self.lblResults = Label(self, text=results, font=("Arial", 20), fg="white", bg="black")
         self.lblResults.pack(side=TOP, padx=10, pady=10)
 		
@@ -163,8 +160,23 @@ class EndGameWindow(Toplevel):
         mainFrame.pack(expand=True)
         cnv.pack_forget()
         self.destroy()
-        
 
+class RuleWindow(Toplevel): #окно с правилами игры
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.geometry('978x544')
+        self.title("Правила игры")
+        self.resizable(width=False, height=False)
+
+        self.cnv = Canvas(self, bg="black")
+        self.cnv.pack(fill=BOTH, expand=True)
+        self.drawRules()
+        
+    def drawRules(self): #отрисовка правил игры
+    	self.img = PhotoImage(file="rules.png") 
+    	self.cnv.create_image(0, 0, anchor='nw',image=self.img)
+        
 def death():
 	global inGame, points, pasCells
 	inGame = False
@@ -284,7 +296,7 @@ def loop():
 def start(mod, event): #запуск игры
 	global startTime, snake, items, inGame, isHardMod, points, pasCells
 	mainFrame.pack_forget()
-	cnv.pack(fill=BOTH, expand=1)
+	cnv.pack(fill=BOTH, expand=True)
 
 	startTime = time.time()
 	snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
@@ -293,11 +305,12 @@ def start(mod, event): #запуск игры
 	isHardMod = mod 
 	points = 0
 	pasCells = 0
-	
+
 	loop()
 
 def help():  #окно с правилами игры
-	messagebox.showinfo("Правила игры", "Текст")
+	rulesWindow = RuleWindow(window)
+	rulesWindow.grab_set()
 
 def createMap(): #создание сетки на поле
 	for i in range(Const.WINDOW_W//Const.CELL_SIZE):
