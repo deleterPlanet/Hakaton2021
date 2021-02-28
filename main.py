@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import messagebox
 from random import randint
+from functools import partial
 import time
 
 class Const():
@@ -15,18 +16,17 @@ class Const():
 	SLOWDOWN_TIME = 2 #во сколько раз замедляется время
 
 class Items():
-	apples = []
-	traps = []
-	bonuses = []
-	appleColor = "orange red"
-	trapColor = "white"
-	crossColor = "red"
-	bonusColors = {"short": "wheat3", "invincib": "gold", "time": "deep sky blue", "tp": "DeepPink2"}
-	bonusesTypes = []
-	isSlowTime = False #замедление времени
-	isInvincib = False #неуязвимость змейки
-
 	def __init__(self, countA=2, countT=10, countB=3):
+		self.apples = []
+		self.traps = []
+		self.bonuses = []
+		self.appleColor = "orange red"
+		self.trapColor = "white"
+		self.crossColor = "red"
+		self.bonusColors = {"short": "wheat3", "invincib": "gold", "time": "deep sky blue", "tp": "DeepPink2"}
+		self.bonusesTypes = []
+		self.isSlowTime = False #замедление времени
+		self.isInvincib = False #неуязвимость змейки
 		self.applesCount = countA #макс. кол-во яблок на поле
 		self.trapsCount = countT #макс. кол-во ловушек на поле
 		self.bonusesCount = countB #макс. кол-во бонусов на поле
@@ -91,24 +91,25 @@ class Items():
 				self.isInvincib = self.isSlowTime #отключение бонуса
 
 class Snake():
-	drc = "top" #направление змейки
-	body = [] 
-	length = 10 #максимальная длина змейки
-	color = "green3" #"green4"
-	speedX = 0
-	speedY = -1
-	newDrc = ""
-
 	def __init__(self, x=0, y=0, speed=1):
+		self.drc = "top" #направление змейки
+		self.body = [] 
+		self.length = 10 #максимальная длина змейки
+		self.color = "green3" #"green4"
+		self.speedX = 0
+		self.speedY = -1
+		self.newDrc = ""
 		self.headPosX = x
 		self.headPosY = y
 		self.speed = speed
 		self.body.append({"x": x, "y": y})
 
 	def move(self): #перемещение змейки
+		global pasCells
 		self.headPosX += self.speedX
 		self.headPosY += self.speedY
 		self.body.insert(0, {"x": self.headPosX, "y": self.headPosY})
+		pasCells += 1
 		if len(self.body) > self.length: #"анимация" укорочения
 			del self.body[-1]
 		if len(self.body) > self.length: #"анимация" укорочения
@@ -124,11 +125,53 @@ class Snake():
 					death()
 					break
 
+
+class EndGameWindow(Toplevel):
+    def __init__(self, parent, results):
+        super().__init__(parent)
+
+        self.geometry('350x200')
+        self["bg"] = "black"
+        self.title("Конец игры")
+        self.resizable(width=False, height=False)
+        self.protocol("WM_DELETE_WINDOW", self.toMenu)
+
+        # self.lblEnd = Label(self, text="Конец игры", font=("Arial Bold", 20))
+        # self.lblEnd.pack(side=TOP, padx=10, pady=10)
+
+        self.lblResults = Label(self, text=results, font=("Arial", 20), fg="white", bg="black")
+        self.lblResults.pack(side=TOP, padx=10, pady=10)
+		
+        self.btnRestart = Button(self, text="Заново", command=self.restart, font=("Arial", 20), fg="white", bg="black", bd=5, relief=RAISED)
+        self.btnRestart.pack(side=LEFT, padx=10, pady=10)
+
+        self.btnMenu = Button(self, text="Меню", command=self.toMenu, font=("Arial", 20), fg="white", bg="black", bd=5, relief=RAISED)
+        self.btnMenu.pack(side=RIGHT, padx=10, pady=10)
+        
+    def restart(self):
+        global points, pasCells, snake, startTime, items, inGame
+        points = 0
+        pasCells = 0
+        snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
+        startTime = time.time()
+        items = Items(Const.APPLES_COUNT, Const.TRAPS_COUNT, Const.BONUSES_COUNT)
+        inGame = True
+        self.destroy()
+        loop()
+
+    def toMenu(self):
+        mainFrame.pack(expand=True)
+        cnv.pack_forget()
+        self.destroy()
+        
+
 def death():
-	global inGame
+	global inGame, points, pasCells
 	inGame = False
 	now = time.time()
-	messagebox.showinfo("Конец игры", "Время игры: "+str(int(now-startTime))+" cек.")
+	res = "Время игры: " + str(int(now - startTime)) + " cек.\n" + "Набрано очков: " + str(points) + "\n" + "Пройдено клеток: " + str(pasCells)
+	endGameWindow = EndGameWindow(window, res)
+	endGameWindow.grab_set()
 
 def drawSnake(): #отрисовка змейки
 	for i in range(len(snake.body)):
@@ -173,9 +216,11 @@ def drawApples(): #отрисовка яблок
 		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.appleColor, fill=items.appleColor)
 
 def checkAppleContact(): #проверка на сбор яблока
+	global points
 	for i in range(len(items.apples)):
 		if snake.headPosX == items.apples[i]["x"] and snake.headPosY == items.apples[i]["y"]:
 			snake.length += 1
+			points += 1
 			if isHardMod: snake.speed += 2
 			del items.apples[i]
 			break
@@ -236,11 +281,19 @@ def loop():
 	if items.isSlowTime: fps //= Const.SLOWDOWN_TIME
 	if inGame: window.after(1000//fps, loop)
 
-def start(): #запуск игры
-	global startTime
+def start(mod, event): #запуск игры
+	global startTime, snake, items, inGame, isHardMod, points, pasCells
 	mainFrame.pack_forget()
 	cnv.pack(fill=BOTH, expand=1)
+
 	startTime = time.time()
+	snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
+	items = Items(Const.APPLES_COUNT, Const.TRAPS_COUNT, Const.BONUSES_COUNT)
+	inGame = True
+	isHardMod = mod 
+	points = 0
+	pasCells = 0
+	
 	loop()
 
 def help():  #окно с правилами игры
@@ -254,14 +307,14 @@ def createMap(): #создание сетки на поле
 		y = (i+1)*Const.CELL_SIZE
 		cnv.create_line(0, y, Const.WINDOW_W, y, fill="gray50")
 
-snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
-items = Items(Const.APPLES_COUNT, Const.TRAPS_COUNT, Const.BONUSES_COUNT)
-inGame = True
-isHardMod = True #режим с увеличение скорости змейки
-startTime = 0
+def exit():
+	if messagebox.askyesno(message="Вы точно хотите выйти из игры?", parent=window):
+		window.destroy()
 
 #создание элементов меню
 window = Tk()
+window.resizable(width=False, height=False)
+window.protocol("WM_DELETE_WINDOW", exit)
 window.geometry('990x750')
 window["bg"] = "black"
 window.title("Змейка (Хакатон 2021)")
@@ -270,12 +323,17 @@ window.bind("<KeyPress>", onKeyPressed)
 cnv = Canvas(window, bg="black")
 
 mainFrame = Frame(window, width=50, bg="black")
-mainFrame.pack(fill=BOTH, side=LEFT, expand=True)
+mainFrame.pack(expand=True)
 
-btnStart = Button(mainFrame, text="Играть", width=20, command=start, bg="black", fg="white", font=("Arial Bold", 20), bd=10, relief=GROOVE)
-btnStart.pack(side=TOP, padx=5, pady=5)
+btnStartEasy = Button(mainFrame, text="Статический режим", width=20, bg="black", fg="white", font=("Arial Bold", 20), bd=10, relief=GROOVE)
+btnStartEasy.pack(side=TOP, padx=20, pady=20)
+btnStartEasy.bind('<Button-1>', partial(start, False))
 
-btnHelp = Button(mainFrame, text="Правила", width=20, command=help, bg="black", fg="white", font=("Arial Bold", 20), bd=10, relief=GROOVE)
-btnHelp.pack(side=TOP, padx=5, pady=5)
+btnStartHard = Button(mainFrame, text="Динамический режим", width=20, bg="black", fg="white", font=("Arial Bold", 20), bd=10, relief=GROOVE)
+btnStartHard.pack(side=TOP, padx=20, pady=20)
+btnStartHard.bind('<Button-1>', partial(start, True))
+
+btnHelp = Button(mainFrame, text="Правила игры", width=20, command=help, bg="black", fg="white", font=("Arial Bold", 20), bd=10, relief=GROOVE)
+btnHelp.pack(side=TOP, padx=20, pady=20)
 
 window.mainloop()
