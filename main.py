@@ -5,33 +5,31 @@ class Const():
 	WINDOW_W = 990
 	WINDOW_H = 750
 	CELL_SIZE = 15
-	START_SPEED = -0.03
+	START_SPEED = 10 #количество кадров в секунду
 
 class Snake():
 	drc = "top" #направление змейки
 	body = [] 
 	length = 1 #максимальная длина змейки
 	color = "green3" #"green4"
+	speedX = 0
+	speedY = -1
 
-	def __init__(self, x=0, y=0, speed = -0.01):
+	def __init__(self, x=0, y=0, speed=1):
 		self.headPosX = x
 		self.headPosY = y
-		self.speedX = 0
-		self.speedY = speed
-		self.speed = abs(speed)
+		self.speed = speed
 		self.body.append({"x": x, "y": y})
-		print("init")
 
 	def move(self): #перемещение змейки
 		self.headPosX += self.speedX
 		self.headPosY += self.speedY
-		print(self.headPosY, self.body[0]["y"])
-		check = (abs(self.headPosX - self.body[0]["x"]) >= 1) or (abs(self.headPosY - self.body[0]["y"]) >= 1)
-		print(check)
-		if check:
-			self.body.insert(0, {"x": round(self.headPosX), "y": round(self.headPosY)})
-			del self.body[-1]
-		return check
+		self.body.insert(0, {"x": self.headPosX, "y": self.headPosY})
+		del self.body[-1]
+
+def death():
+	inGame = False
+	messagebox.showinfo('Конец игры', 'Заново?')
 
 def drawSnake(): #отрисовка змейки
 	for i in range(snake.length):
@@ -60,18 +58,27 @@ def onKeyPressed(event):
 		newSpeedX = -1
 	if newDrc != "":
 		snake.drc = newDrc
-		snake.headPosX = snake.body[0]["x"]
-		snake.headPosY = snake.body[0]["y"]
-		snake.speedX = newSpeedX*snake.speed
-		snake.speedY = newSpeedY*snake.speed
+		snake.speedX = newSpeedX
+		snake.speedY = newSpeedY
+
+def checkBorderContact():
+	width = Const.WINDOW_W//Const.CELL_SIZE
+	height = Const.WINDOW_H//Const.CELL_SIZE
+	x = snake.headPosX
+	y = snake.headPosY
+	if x >= width or x < 0 or y >= height or y < 0:
+		death()
+
+
 
 
 def loop():
 	cnv.delete("all")
-	snake.move()
 	createMap()
+	snake.move()
 	drawSnake()
-	window.after(1000//60, loop)
+	checkBorderContact()
+	if inGame: window.after(1000//snake.speed, loop)
 
 def start(): #запуск игры
 	mainFrame.pack_forget()
@@ -90,6 +97,7 @@ def createMap(): #создание сетки на поле
 		cnv.create_line(0, y, Const.WINDOW_W, y, fill="gray50")
 
 snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
+inGame = True
 #создание элементов меню
 window = Tk()
 window.geometry('990x750')
