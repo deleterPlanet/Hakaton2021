@@ -6,27 +6,42 @@ class Const():
 	WINDOW_W = 990 #размер поля в px
 	WINDOW_H = 750 #размер поля в px
 	CELL_SIZE = 15 #размер клетки в px
-	START_SPEED = 3 #количество кадров в секунду
-	APPLES_COUNT = 2  #максимальное количество яблок на поле
+	START_SPEED = 3 #кол-во кадров в секунду
+	APPLES_COUNT = 2  #максимальное кол-во яблок на поле
+	TRAPS_COUNT = 2  #максимальное кол-во ловушек на поле
 
 class Items():
 	apples = []
 	appleColor = "orange red"
+	trapColor = "white"
+	crossColor = "red"
+	traps = []
 
-	def __init__(self, count=2):
-		self.applesCount = count #максимальное количество яблок на поле
-		for i in range(count):
-			self.spawnApple()
+	def __init__(self, countA=2, countT=2):
+		self.applesCount = countA #максимальное кол-во яблок на поле
+		self.trapsCount = countT #максимальное кол-во ловушек на поле
+		self.checkAppleCount()
+		self.checkTrapCount()
 
 	def spawnApple(self):
 		appleX = randint(0, Const.WINDOW_W//Const.CELL_SIZE)
 		appleY = randint(0, Const.WINDOW_H//Const.CELL_SIZE)
-		if len(self.apples) == 0 or (self.apples[0]["x"] != appleX and self.apples[0]["y"] != appleY):
+		if not ({"x": appleX, "y": appleY} in self.apples or {"x": appleX, "y": appleY} in self.traps):
 			self.apples.append({"x": appleX, "y": appleY})
 
 	def checkAppleCount(self):
 		while len(self.apples) < self.applesCount:
 			self.spawnApple()
+
+	def spawnTrap(self):
+		trapX = randint(0, Const.WINDOW_W//Const.CELL_SIZE)
+		trapY = randint(0, Const.WINDOW_H//Const.CELL_SIZE)
+		if not ({"x": trapX, "y": trapY} in self.apples or {"x": trapX, "y": trapY} in self.traps):
+			self.traps.append({"x": trapX, "y": trapY})
+
+	def checkTrapCount(self):
+		while len(self.traps) < self.trapsCount:
+			self.spawnTrap()
 
 class Snake():
 	drc = "top" #направление змейки
@@ -115,16 +130,33 @@ def checkAppleContact(): #проверка на сбор яблока
 			del items.apples[i]
 			break
 
+def drawTraps(): #отрисовка ловушек
+	for i in range(len(items.traps)):
+		x = items.traps[i]["x"]*Const.CELL_SIZE
+		y = items.traps[i]["y"]*Const.CELL_SIZE
+		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.trapColor, fill=items.trapColor)
+		#отрисовка креста в ловушке
+		cnv.create_line(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, fill=items.crossColor)
+		cnv.create_line(x+Const.CELL_SIZE, y, x, y+Const.CELL_SIZE, fill=items.crossColor)
+
+def checkTrapContact(): #проверка на столкновение с ловушкой
+	for i in range(len(items.traps)):
+		if snake.headPosX == items.traps[i]["x"] and snake.headPosY == items.traps[i]["y"]:
+			death()
+
 def loop():
 	cnv.delete("all")
-	createMap()
+	items.checkAppleCount()
+	items.checkTrapCount()
 	snake.move()
+	createMap()
 	drawSnake()
 	drawApples()
+	drawTraps()
 	snake.checkBiteYourself()
 	checkBorderContact()
 	checkAppleContact()
-	items.checkAppleCount()
+	checkTrapContact()
 	if inGame: window.after(1000//snake.speed, loop)
 
 def start(): #запуск игры
@@ -144,7 +176,7 @@ def createMap(): #создание сетки на поле
 		cnv.create_line(0, y, Const.WINDOW_W, y, fill="gray50")
 
 snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
-items = Items(Const.APPLES_COUNT)
+items = Items(Const.APPLES_COUNT, Const.TRAPS_COUNT)
 inGame = True
 isHardMod = True
 
