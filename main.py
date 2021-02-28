@@ -1,11 +1,32 @@
 from tkinter import *
 from tkinter import messagebox
+from random import randint
 
 class Const():
-	WINDOW_W = 990
-	WINDOW_H = 750
-	CELL_SIZE = 15
-	START_SPEED = 10 #количество кадров в секунду
+	WINDOW_W = 990 #размер поля в px
+	WINDOW_H = 750 #размер поля в px
+	CELL_SIZE = 15 #размер клетки в px
+	START_SPEED = 3 #количество кадров в секунду
+	APPLES_COUNT = 2  #максимальное количество яблок на поле
+
+class Items():
+	apples = []
+	appleColor = "orange red"
+
+	def __init__(self, count=2):
+		self.applesCount = count #максимальное количество яблок на поле
+		for i in range(count):
+			self.spawnApple()
+
+	def spawnApple(self):
+		appleX = randint(0, Const.WINDOW_W//Const.CELL_SIZE)
+		appleY = randint(0, Const.WINDOW_H//Const.CELL_SIZE)
+		if len(self.apples) == 0 or (self.apples[0]["x"] != appleX and self.apples[0]["y"] != appleY):
+			self.apples.append({"x": appleX, "y": appleY})
+
+	def checkAppleCount(self):
+		while len(self.apples) < self.applesCount:
+			self.spawnApple()
 
 class Snake():
 	drc = "top" #направление змейки
@@ -25,19 +46,21 @@ class Snake():
 		self.headPosX += self.speedX
 		self.headPosY += self.speedY
 		self.body.insert(0, {"x": self.headPosX, "y": self.headPosY})
-		del self.body[-1]
+		while len(self.body) > self.length:
+			del self.body[-1]
+
 
 def death():
 	inGame = False
 	messagebox.showinfo('Конец игры', 'Заново?')
 
 def drawSnake(): #отрисовка змейки
-	for i in range(snake.length):
+	for i in range(len(snake.body)):
 		x = snake.body[i]["x"]*Const.CELL_SIZE
 		y = snake.body[i]["y"]*Const.CELL_SIZE
-		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y-Const.CELL_SIZE, outline=snake.color, fill=snake.color)
+		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=snake.color, fill=snake.color)
 
-def onKeyPressed(event):
+def onKeyPressed(event): #отслеживание нажатий клавиш
 	code = event.keycode
 	newDrc = ""
 	newSpeedX = 0
@@ -61,7 +84,7 @@ def onKeyPressed(event):
 		snake.speedX = newSpeedX
 		snake.speedY = newSpeedY
 
-def checkBorderContact():
+def checkBorderContact(): #проверка на выход из поля игры
 	width = Const.WINDOW_W//Const.CELL_SIZE
 	height = Const.WINDOW_H//Const.CELL_SIZE
 	x = snake.headPosX
@@ -69,15 +92,29 @@ def checkBorderContact():
 	if x >= width or x < 0 or y >= height or y < 0:
 		death()
 
+def drawApples(): #отрисовка яблок
+	for i in range(len(items.apples)):
+		x = items.apples[i]["x"]*Const.CELL_SIZE
+		y = items.apples[i]["y"]*Const.CELL_SIZE
+		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.appleColor, fill=items.appleColor)
 
-
+def checkAppleContact(): #проверка на сбор яблока
+	for i in range(len(items.apples)):
+		if snake.headPosX == items.apples[i]["x"] and snake.headPosY == items.apples[i]["y"]:
+			snake.length += 1
+			if isHardMod: snake.speed += 2
+			del items.apples[i]
+			break
 
 def loop():
 	cnv.delete("all")
 	createMap()
 	snake.move()
 	drawSnake()
+	drawApples()
 	checkBorderContact()
+	checkAppleContact()
+	items.checkAppleCount()
 	if inGame: window.after(1000//snake.speed, loop)
 
 def start(): #запуск игры
@@ -97,7 +134,10 @@ def createMap(): #создание сетки на поле
 		cnv.create_line(0, y, Const.WINDOW_W, y, fill="gray50")
 
 snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
+items = Items(Const.APPLES_COUNT)
 inGame = True
+isHardMod = True
+
 #создание элементов меню
 window = Tk()
 window.geometry('990x750')
