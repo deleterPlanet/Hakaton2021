@@ -125,6 +125,7 @@ class Snake():
 					break
 
 def death():
+	global inGame
 	inGame = False
 	now = time.time()
 	messagebox.showinfo("Конец игры", "Время игры: "+str(int(now-startTime))+" cек.")
@@ -210,6 +211,7 @@ def checkBonusContact(): #проверка на сбор бонуса
 			break
 
 def loop():
+	global inGame
 	cnv.delete("all")
 	#работа с числами
 	items.checkAppleCount()
@@ -229,12 +231,13 @@ def loop():
 	checkTrapContact()
 	checkBonusContact()
 	items.checkBonusRun()
-
+	#запуск нового кадра
 	fps = snake.speed
 	if items.isSlowTime: fps //= Const.SLOWDOWN_TIME
-	if inGame: window.after(1000//fps, loop) #запуск нового кадра
+	if inGame: window.after(1000//fps, loop)
 
 def start(): #запуск игры
+	global startTime
 	mainFrame.pack_forget()
 	cnv.pack(fill=BOTH, expand=1)
 	startTime = time.time()
