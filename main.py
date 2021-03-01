@@ -308,9 +308,21 @@ def loop():
 
 def start(mod, event): #запуск игры
 	global startTime, snake, items, inGame, isHardMod, points, pasCells
+	#работа с информацией
+	data = open("data.txt", "r")
+	isFirstGame = int(data.readline().split("=")[-1])
+	if isFirstGame: #если это первая игра
+		data = open("data.txt", "w")
+		data.write("isFirstGame=" + "0")
+		data.close()
+		if messagebox.askyesno(message="Не хотите сначала ознакомиться с правилами игры?", parent=window):
+			help()
+			return
+	data.close()
+	#работа с элементами экрана
 	mainFrame.pack_forget()
 	cnv.pack(fill=BOTH, expand=True)
-
+	#обнуление переменных
 	startTime = time.time()
 	snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
 	items = Items(Const.APPLES_COUNT, Const.TRAPS_COUNT, Const.BONUSES_COUNT)
