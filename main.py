@@ -8,10 +8,10 @@ class Const():
 	WINDOW_W = 990 #размер поля в px
 	WINDOW_H = 750 #размер поля в px
 	CELL_SIZE = 15 #размер клетки в px
-	START_SPEED = 3 #кол-во кадров в секунду
+	START_SPEED = 10 #кол-во кадров в секунду
 	APPLES_COUNT = 2  #макс. кол-во яблок на поле
 	TRAPS_COUNT = 10  #макс. кол-во ловушек на поле
-	BONUSES_COUNT = 10 #макс. кол-во бонусов на поле
+	BONUSES_COUNT = 30 #макс. кол-во бонусов на поле
 	BONUS_TIME = 10 #кол-во секунд работы бонуса
 	SLOWDOWN_TIME = 2 #во сколько раз замедляется время
 
@@ -25,8 +25,7 @@ class Items():
 		self.crossColor = "red"
 		self.bonusColors = {"short": "wheat3", "invincib": "gold", "time": "deep sky blue", "tp": "DeepPink2"}
 		self.bonusesTypes = []
-		self.isSlowTime = False #замедление времени
-		self.isInvincib = False #неуязвимость змейки
+		self.bonusesStat = {"invincib": {"isRun": False, "startTime": 0}, "time": {"isRun": False, "startTime": 0}}
 		self.applesCount = countA #макс. кол-во яблок на поле
 		self.trapsCount = countT #макс. кол-во ловушек на поле
 		self.bonusesCount = countB #макс. кол-во бонусов на поле
@@ -71,24 +70,23 @@ class Items():
 		type = self.bonusesTypes[bonusNum]
 		if type == "short":
 			snake.length = 1
-		elif type == "invincib":
-			self.startBonusTime = time.time()
-			self.isInvincib = True
-		elif type == "time":
-			self.startBonusTime = time.time()
-			self.isSlowTime = True
 		elif type == "tp":
 			while {"x": snake.headPosX, "y": snake.headPosY} in snake.body:
 				snake.headPosX = randint(0, Const.WINDOW_W//Const.CELL_SIZE)
 				snake.headPosY = randint(0, Const.WINDOW_H//Const.CELL_SIZE)
+		else:
+			self.bonusesStat[type]["startTime"] = time.time()
+			self.bonusesStat[type]["isRun"] = True
+
 		del self.bonusesTypes[bonusNum]
 		del self.bonuses[bonusNum]
 
 	def checkBonusRun(self):
 		now = time.time()
-		if self.isInvincib or self.isSlowTime: #если работает один из бонусов
-			if now - self.startBonusTime >= Const.BONUS_TIME:
-				self.isInvincib = self.isSlowTime #отключение бонуса
+		for i in self.bonusesStat.keys():
+			if self.bonusesStat[i]["isRun"] and now - self.bonusesStat[i]["startTime"] >= Const.BONUS_TIME:
+				self.bonusesStat[i]["isRun"] = False
+				print(i, "off")
 
 class Snake():
 	def __init__(self, x=0, y=0, speed=1):
@@ -197,6 +195,8 @@ def onKeyPressed(event): #отслеживание нажатий клавиш
 	newSpeedY = 0
 	if code == 112:
 		help()
+	elif code == 116:
+		death()
 	elif code == 38 and snake.drc != "bottom": #вверх
 		snake.newDrc = "top"
 		newSpeedY = -1
@@ -249,7 +249,7 @@ def drawTraps(): #отрисовка ловушек
 def checkTrapContact(): #проверка на столкновение с ловушкой
 	for i in range(len(items.traps)):
 		if snake.headPosX == items.traps[i]["x"] and snake.headPosY == items.traps[i]["y"]:
-			if items.isInvincib:
+			if items.bonusesStat["invincib"]["isRun"]:
 				del items.traps[i]
 			else:
 				death()
@@ -267,6 +267,18 @@ def checkBonusContact(): #проверка на сбор бонуса
 			items.getBonus(i)
 			break
 
+def drawTimers():
+	now = time.time()
+	timerPos = {"x": 0, "y": 0}
+	for i in items.bonusesStat.keys():
+		pasBonus = (now - items.bonusesStat[i]["startTime"])/Const.BONUS_TIME
+		if items.bonusesStat[i]["isRun"] and pasBonus <= 1:
+			x = timerPos["x"]*Const.CELL_SIZE
+			y = timerPos["y"]*Const.CELL_SIZE
+			timerPos["x"] += 3
+			timer = int(pasBonus*360)
+			cnv.create_arc(x, y, x+2*Const.CELL_SIZE, y+2*Const.CELL_SIZE, start=90, extent=360-timer, outline=items.bonusColors[i], fill=items.bonusColors[i])
+
 def loop():
 	global inGame
 	cnv.delete("all")
@@ -281,6 +293,7 @@ def loop():
 	drawApples()
 	drawTraps()
 	drawBonuses()
+	drawTimers()
 	#проверки
 	snake.checkBiteYourself()
 	checkBorderContact()
@@ -290,7 +303,7 @@ def loop():
 	items.checkBonusRun()
 	#запуск нового кадра
 	fps = snake.speed
-	if items.isSlowTime: fps //= Const.SLOWDOWN_TIME
+	if items.bonusesStat["time"]["isRun"]: fps //= Const.SLOWDOWN_TIME
 	if inGame: window.after(1000//fps, loop)
 
 def start(mod, event): #запуск игры
@@ -305,7 +318,6 @@ def start(mod, event): #запуск игры
 	isHardMod = mod 
 	points = 0
 	pasCells = 0
-
 	loop()
 
 def help():  #окно с правилами игры
