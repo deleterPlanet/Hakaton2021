@@ -5,8 +5,8 @@ from functools import partial
 import time
 
 class Const():
-	WINDOW_W = 990 #размер поля в px
-	WINDOW_H = 750 #размер поля в px
+	WINDOW_W = 975 #размер поля в px
+	WINDOW_H = 720 #размер поля в px
 	CELL_SIZE = 15 #размер клетки в px
 	START_SPEED = 2 #кол-во кадров в секунду
 	APPLES_COUNT = 2  #макс. кол-во яблок на поле
@@ -386,7 +386,7 @@ def exit():
 window = Tk()
 window.resizable(width=False, height=False)
 window.protocol("WM_DELETE_WINDOW", exit)
-window.geometry('990x750')
+window.geometry('975x720')
 window["bg"] = "black"
 window.title("Змейка (Хакатон 2021)")
 window.bind("<KeyPress>", onKeyPressed)

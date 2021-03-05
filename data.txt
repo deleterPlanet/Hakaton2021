@@ -1,1 +1,1 @@
-isFirstGame=0
+isFirstGame=1
