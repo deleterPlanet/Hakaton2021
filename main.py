@@ -8,22 +8,24 @@ class Const():
 	WINDOW_W = 990 #размер поля в px
 	WINDOW_H = 750 #размер поля в px
 	CELL_SIZE = 15 #размер клетки в px
-	START_SPEED = 10 #кол-во кадров в секунду
+	START_SPEED = 2 #кол-во кадров в секунду
 	APPLES_COUNT = 2  #макс. кол-во яблок на поле
-	TRAPS_COUNT = 10  #макс. кол-во ловушек на поле
-	BONUSES_COUNT = 30 #макс. кол-во бонусов на поле
+	TRAPS_COUNT = 5  #макс. кол-во ловушек на поле
+	BONUSES_COUNT = 2 #макс. кол-во бонусов на поле
 	BONUS_TIME = 10 #кол-во секунд работы бонуса
 	SLOWDOWN_TIME = 2 #во сколько раз замедляется время
+	ANIM_TIME = 0.5 #время выполнения анимации
 
 class Items():
-	def __init__(self, countA=2, countT=10, countB=3):
+	def __init__(self, countA=2, countT=5, countB=2):
 		self.apples = []
 		self.traps = []
 		self.bonuses = []
-		self.appleColor = "orange red"
+		self.appleColor = "light goldenrod"
 		self.trapColor = "white"
 		self.crossColor = "red"
 		self.bonusColors = {"short": "wheat3", "invincib": "gold", "time": "deep sky blue", "tp": "DeepPink2"}
+		self.bonusImgs = {"short": "", "invincib": "", "time": "", "tp": ""}
 		self.bonusesTypes = []
 		self.bonusesStat = {"invincib": {"isRun": False, "startTime": 0}, "time": {"isRun": False, "startTime": 0}}
 		self.applesCount = countA #макс. кол-во яблок на поле
@@ -32,6 +34,11 @@ class Items():
 		self.checkAppleCount()
 		self.checkTrapCount()
 		self.checkBonusCount()
+		self.loadImgs()
+
+	def loadImgs(self):
+		for i in self.bonusImgs.keys():
+			self.bonusImgs[i] = PhotoImage(file=i + ".png")
 
 	def spawnApple(self): #генерация яблока
 		appleX = randint(0, Const.WINDOW_W//Const.CELL_SIZE)
@@ -67,6 +74,7 @@ class Items():
 			self.spawnBonus()
 
 	def getBonus(self, bonusNum):
+		global background, startBgAnim
 		type = self.bonusesTypes[bonusNum]
 		if type == "short":
 			snake.length = 1
@@ -77,6 +85,8 @@ class Items():
 		else:
 			self.bonusesStat[type]["startTime"] = time.time()
 			self.bonusesStat[type]["isRun"] = True
+		background = "background_" + type + ".png"
+		startBgAnim = time.time()
 
 		del self.bonusesTypes[bonusNum]
 		del self.bonuses[bonusNum]
@@ -92,7 +102,7 @@ class Snake():
 	def __init__(self, x=0, y=0, speed=1):
 		self.drc = "top" #направление змейки
 		self.body = [] 
-		self.length = 10 #максимальная длина змейки
+		self.length = 1 #максимальная длина змейки
 		self.color = "green3" #"green4"
 		self.speedX = 0
 		self.speedY = -1
@@ -173,7 +183,7 @@ class RuleWindow(Toplevel): #окно с правилами игры
         
     def drawRules(self): #отрисовка правил игры
     	self.img = PhotoImage(file="rules.png") 
-    	self.cnv.create_image(0, 0, anchor='nw',image=self.img)
+    	self.cnv.create_image(0, 0, anchor=NW,image=self.img)
         
 def death():
 	global inGame, points, pasCells
@@ -187,7 +197,17 @@ def drawSnake(): #отрисовка змейки
 	for i in range(len(snake.body)):
 		x = snake.body[i]["x"]*Const.CELL_SIZE
 		y = snake.body[i]["y"]*Const.CELL_SIZE
-		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=snake.color, fill=snake.color)
+		cnv.create_oval(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=snake.color, fill=snake.color)
+		# if len(snake.body) == 1: #отрисовка единичной змейки
+		# 	cnv.create_oval(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=snake.color, fill=snake.color)
+		# elif i == 0: #отрисовка первой ячейки
+		# 	cnv.create_arc(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, start=0, extent=180, fill=snake.color)
+		# 	cnv.create_rectangle(x, y+Const.CELL_SIZE//2, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=snake.color, fill=snake.color)
+		# elif i == len(snake.body) - 1: #отрисовка последней ячейки
+		# 	cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE//2, outline=snake.color, fill=snake.color)
+		# 	cnv.create_arc(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, start=180, extent=360, fill=snake.color)
+		# else: #отрисовка тела
+		# 	cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=snake.color, fill=snake.color)
 
 def onKeyPressed(event): #отслеживание нажатий клавиш
 	code = event.keycode
@@ -225,16 +245,18 @@ def drawApples(): #отрисовка яблок
 	for i in range(len(items.apples)):
 		x = items.apples[i]["x"]*Const.CELL_SIZE
 		y = items.apples[i]["y"]*Const.CELL_SIZE
-		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.appleColor, fill=items.appleColor)
+		cnv.create_oval(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.appleColor, fill=items.appleColor)
 
 def checkAppleContact(): #проверка на сбор яблока
-	global points
+	global points, background, startBgAnim
 	for i in range(len(items.apples)):
 		if snake.headPosX == items.apples[i]["x"] and snake.headPosY == items.apples[i]["y"]:
 			snake.length += 1
 			points += 1
 			if isHardMod: snake.speed += 2
 			del items.apples[i]
+			background = "background_apple.png"
+			startBgAnim = time.time()
 			break
 
 def drawTraps(): #отрисовка ловушек
@@ -259,7 +281,8 @@ def drawBonuses(): #отрисовка бонусов
 	for i in range(len(items.bonuses)):
 		x = items.bonuses[i]["x"]*Const.CELL_SIZE
 		y = items.bonuses[i]["y"]*Const.CELL_SIZE
-		cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.bonusColors[items.bonusesTypes[i]], fill=items.bonusColors[items.bonusesTypes[i]])
+		#cnv.create_rectangle(x, y, x+Const.CELL_SIZE, y+Const.CELL_SIZE, outline=items.bonusColors[items.bonusesTypes[i]], fill=items.bonusColors[items.bonusesTypes[i]])
+		cnv.create_image(x, y, anchor=NW, image=items.bonusImgs[items.bonusesTypes[i]])
 
 def checkBonusContact(): #проверка на сбор бонуса
 	for i in range(len(items.bonuses)):
@@ -278,6 +301,14 @@ def drawTimers():
 			timerPos["x"] += 3
 			timer = int(pasBonus*360)
 			cnv.create_arc(x, y, x+2*Const.CELL_SIZE, y+2*Const.CELL_SIZE, start=90, extent=360-timer, outline=items.bonusColors[i], fill=items.bonusColors[i])
+			cnv.create_image(x+0.5*Const.CELL_SIZE, y+0.5*Const.CELL_SIZE, anchor=NW, image=items.bonusImgs[i])
+
+def drawBackground():
+	global img, background
+	img = PhotoImage(file=background) 
+	cnv.create_image(0, 0, anchor=NW, image=img)
+	if time.time() - startBgAnim >= Const.ANIM_TIME:
+		background = "background.png"
 
 def loop():
 	global inGame
@@ -288,11 +319,12 @@ def loop():
 	items.checkBonusCount()
 	snake.move()
 	#отрисовка элементов
+	drawBackground()
 	createMap()
-	drawSnake()
 	drawApples()
-	drawTraps()
 	drawBonuses()
+	drawSnake()
+	drawTraps()
 	drawTimers()
 	#проверки
 	snake.checkBiteYourself()
@@ -307,7 +339,7 @@ def loop():
 	if inGame: window.after(1000//fps, loop)
 
 def start(mod, event): #запуск игры
-	global startTime, snake, items, inGame, isHardMod, points, pasCells
+	global startTime, snake, items, inGame, isHardMod, points, pasCells, background, startBgAnim
 	#работа с информацией
 	data = open("data.txt", "r")
 	isFirstGame = int(data.readline().split("=")[-1])
@@ -323,7 +355,9 @@ def start(mod, event): #запуск игры
 	mainFrame.pack_forget()
 	cnv.pack(fill=BOTH, expand=True)
 	#обнуление переменных
+	background = "background.png"
 	startTime = time.time()
+	startBgAnim = 0
 	snake = Snake(Const.WINDOW_W//(2*Const.CELL_SIZE), Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
 	items = Items(Const.APPLES_COUNT, Const.TRAPS_COUNT, Const.BONUSES_COUNT)
 	inGame = True
@@ -339,10 +373,10 @@ def help():  #окно с правилами игры
 def createMap(): #создание сетки на поле
 	for i in range(Const.WINDOW_W//Const.CELL_SIZE):
 		x = (i+1)*Const.CELL_SIZE
-		cnv.create_line(x, 0, x, Const.WINDOW_H, fill="gray50")
+		cnv.create_line(x, 0, x, Const.WINDOW_H, fill="gray70")
 	for i in range(Const.WINDOW_H//Const.CELL_SIZE):
 		y = (i+1)*Const.CELL_SIZE
-		cnv.create_line(0, y, Const.WINDOW_W, y, fill="gray50")
+		cnv.create_line(0, y, Const.WINDOW_W, y, fill="gray70")
 
 def exit():
 	if messagebox.askyesno(message="Вы точно хотите выйти из игры?", parent=window):
