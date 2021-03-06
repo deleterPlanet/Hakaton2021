@@ -1,1 +1,1 @@
-isOpenRules=1
+isOpenRules=0
