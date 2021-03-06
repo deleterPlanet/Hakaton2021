@@ -1,1 +1,1 @@
-isFirstGame=1
+isOpenRules=1
