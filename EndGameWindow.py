@@ -26,9 +26,6 @@ class EndGameWindow(Toplevel):
 
         self.newGame = restart
         self.openMenu = toMenu
-
-    def none(self):
-        return
         
     def restart(self):
         self.newGame()

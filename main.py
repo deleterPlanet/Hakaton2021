@@ -31,14 +31,15 @@ def drawSnake(): #отрисовка змейки
 			outline=snake.color, fill=snake.color)
 
 def onKeyPressed(event):  # Отслеживание нажатий клавиш
+	global isCells
 	code = event.keycode
 	newSpeedX = 0
 	newSpeedY = 0
 
 	if code == 112:
 		help()
-	elif code == 116:
-		death()
+	elif code == 67: # Переключение отображения сетки
+		isCells = not isCells
 	elif code == 38 and snake.drc != "bottom":  # Вверх
 		snake.newDrc = "top"
 		newSpeedY = -1
@@ -171,7 +172,7 @@ def loop():
 
 	# Отрисовка элементов
 	drawBackground()
-	createMap()
+	if isCells: createMap()
 	drawApples()
 	drawBonuses()
 	drawSnake()
@@ -219,7 +220,7 @@ def start(mod, event):  #З апуск игры
 
 def beforeGame():  # Обнуление переменных
 	global points, pasCells, snake, startTime, items, inGame
-	global startBgAnim, background
+	global startBgAnim, background, isCells
 
 	background = "background.png"
 	startTime = time.time()
@@ -228,6 +229,7 @@ def beforeGame():  # Обнуление переменных
 			Const.WINDOW_H//(2*Const.CELL_SIZE), Const.START_SPEED)
 	items = i.Items(Const.APPLES_COUNT, Const.TRAPS_COUNT,
 			Const.BONUSES_COUNT, snake)
+	isCells = True
 	inGame = True
 	points = 0
 	pasCells = 0

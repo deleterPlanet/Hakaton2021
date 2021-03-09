@@ -4,7 +4,7 @@ class RuleWindow(Toplevel):  # Окно с правилами игры
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.geometry('978x544')
+        self.geometry('978x572')
         self.title("Правила игры")
         self.resizable(width=False, height=False)
 
